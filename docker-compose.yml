@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: roadcore-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: roadcore_user
+      POSTGRES_PASSWORD: roadcore_password
+      POSTGRES_DB: roadcore_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roadcore_user -d roadcore_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: roadcore-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: roadcore_admin
+      MINIO_ROOT_PASSWORD: roadcore_secret_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
+  miniodata:
+    driver: local
